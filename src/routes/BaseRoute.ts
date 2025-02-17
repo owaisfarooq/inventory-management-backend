@@ -1,7 +1,8 @@
 import express, { Router } from 'express';
-import { BaseController } from '../controllers/BaseController'; // import BaseController
+import { BaseController } from '../controllers/BaseController';
+import { PrismaBaseModel } from '../utils/PrismaBaseModel';
 
-export abstract class BaseRoute<T> {
+export abstract class BaseRoute<T extends PrismaBaseModel<T>> {
   router: Router;
   controller: BaseController<T>;
 
@@ -26,5 +27,5 @@ export abstract class BaseRoute<T> {
     this.router.get('/:id', this.controller.getById);
     this.router.put('/:id', this.controller.update);
     this.router.delete('/:id', this.controller.delete);
-  };
+  }
 }

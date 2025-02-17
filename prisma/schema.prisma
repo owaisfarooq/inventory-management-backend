@@ -11,73 +11,286 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id       String  @id @default(uuid())
-  email    String  @unique
-  password String
-  name     String
-  role     Role    @default(STAFF)
-  createdAt DateTime @default(now())
+  id          Int       @id @default(autoincrement())
+  name        String
+  email       String    @unique
+  passwordHash String
+  roleId      Int
+  createdBy   Int?
+  createdAt   DateTime  @default(now())
+  editedBy    Int?
+  editedAt    DateTime?
+  deletedBy   Int?
+  deletedAt   DateTime?
 
-  orders    Order[]
+  role        Role      @relation(fields: [roleId], references: [id])
+}
+
+model Role {
+  id          Int       @id @default(autoincrement())
+  roleName    String    @unique
+  createdBy   Int?
+  createdAt   DateTime  @default(now())
+  editedBy    Int?
+  editedAt    DateTime?
+  deletedBy   Int?
+  deletedAt   DateTime?
+
+  users       User[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id           Int       @id @default(autoincrement())
+  featureName  String
+  actionType   String
+
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  id           Int         @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+
+  role         Role        @relation(fields: [roleId], references: [id])
+  permission   Permission  @relation(fields: [permissionId], references: [id])
 }
 
 model Product {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  price       Float
-  stock       Int
-  createdAt   DateTime @default(now())
+  id                  Int           @id @default(autoincrement())
+  name                String
+  sku                 String        @unique
+  categoryId          Int
+  minStockThreshold   Int
+  costPrice           Float
+  sellingPrice        Float
+  unit                String
+  createdBy           Int?
+  createdAt           DateTime      @default(now())
+  editedBy            Int?
+  editedAt            DateTime?
+  deletedBy           Int?
+  deletedAt           DateTime?
 
-  orderItems  OrderItem[]
-  transactions Transaction[]
+  category            Category      @relation(fields: [categoryId], references: [id])
+  productBatches      ProductBatch[]
+  purchaseOrderItems  PurchaseOrderItem[]
+  productSuppliers    ProductSupplier[]
+  saleOrderItems      SaleOrderItem[]
+  returnOrderItems    ReturnOrderItem[]
+  stockMovements      StockMovement[]
 }
 
-model Order {
-  id         String   @id @default(uuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  totalPrice Float
-  createdAt  DateTime @default(now())
+model ProductBatch {
+  id            Int       @id @default(autoincrement())
+  productId     Int
+  supplierId    Int
+  batchNumber   String    @unique
+  expiryDate    DateTime
+  quantity      Int
+  receivedDate  DateTime  @default(now())
+  createdBy     Int?
+  createdAt     DateTime  @default(now())
+  editedBy      Int?
+  editedAt      DateTime?
+  deletedBy     Int?
+  deletedAt     DateTime?
 
-  orderItems OrderItem[]
+  product       Product   @relation(fields: [productId], references: [id])
+  supplier      Supplier  @relation(fields: [supplierId], references: [id])
+  stockMovements StockMovement[]
+  saleOrderItems SaleOrderItem[]
+  returnOrderItems ReturnOrderItem[]
 }
 
-model OrderItem {
-  id        String  @id @default(uuid())
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id])
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-  quantity  Int
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  createdBy   Int?
+  createdAt   DateTime  @default(now())
+  editedBy    Int?
+  editedAt    DateTime?
+  deletedBy   Int?
+  deletedAt   DateTime?
+
+  products    Product[]
+}
+
+model ProductSupplier {
+  id          Int       @id @default(autoincrement())
+  productId   Int
+  supplierId  Int
+  priority    Int
+  createdBy   Int?
+  createdAt   DateTime  @default(now())
+  editedBy    Int?
+  editedAt    DateTime?
+  deletedBy   Int?
+  deletedAt   DateTime?
+
+  product     Product   @relation(fields: [productId], references: [id])
+  supplier    Supplier  @relation(fields: [supplierId], references: [id])
 }
 
 model Supplier {
-  id          String @id @default(uuid())
+  id            Int       @id @default(autoincrement())
+  name          String
+  contactEmail  String
+  contactPhone  String
+  address       String
+  createdBy     Int?
+  createdAt     DateTime  @default(now())
+  editedBy      Int?
+  editedAt      DateTime?
+  deletedBy     Int?
+  deletedAt     DateTime?
+
+  products      ProductSupplier[]
+  productBatches ProductBatch[]
+  purchaseOrders PurchaseOrder[]
+  stockMovements StockMovement[]
+}
+
+model PurchaseOrder {
+  id           Int       @id @default(autoincrement())
+  supplierId   Int
+  status       String
+  totalCost    Float
+  createdBy    Int?
+  createdAt    DateTime  @default(now())
+  editedBy     Int?
+  editedAt     DateTime?
+  deletedBy    Int?
+  deletedAt    DateTime?
+
+  supplier     Supplier  @relation(fields: [supplierId], references: [id])
+  items        PurchaseOrderItem[]
+}
+
+model PurchaseOrderItem {
+  id                Int       @id @default(autoincrement())
+  purchaseOrderId   Int
+  productId         Int
+  quantityRequested Int
+  quantityReceived  Int
+  unitPrice         Float
+  createdAt         DateTime  @default(now())
+  editedAt          DateTime?
+
+  purchaseOrder     PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id])
+  product           Product        @relation(fields: [productId], references: [id])
+}
+
+model SaleOrder {
+  id          Int       @id @default(autoincrement())
+  customerId  Int?
+  name        String?
+  email       String?
+  phone       String?
+  address     String?
+  status      String
+  totalPrice  Float
+  createdBy   Int?
+  createdAt   DateTime  @default(now())
+  editedBy    Int?
+  editedAt    DateTime?
+  deletedBy   Int?
+  deletedAt   DateTime?
+
+  customer    Customer? @relation(fields: [customerId], references: [id])
+  items       SaleOrderItem[]
+  returnOrders ReturnOrder[]
+}
+
+model SaleOrderItem {
+  id          Int       @id @default(autoincrement())
+  saleOrderId Int
+  productId   Int
+  batchId     Int
+  quantity    Int
+  unitPrice   Float
+  createdAt   DateTime  @default(now())
+  editedAt    DateTime?
+
+  saleOrder   SaleOrder  @relation(fields: [saleOrderId], references: [id])
+  product     Product    @relation(fields: [productId], references: [id])
+  batch       ProductBatch @relation(fields: [batchId], references: [id])
+}
+
+model ReturnOrder {
+  id           Int       @id @default(autoincrement())
+  salesOrderId Int
+  customerId   Int
+  returnDate   DateTime  @default(now())
+  status       String
+  totalRefund  Float
+  createdBy    Int?
+  createdAt    DateTime  @default(now())
+  editedBy     Int?
+  editedAt     DateTime?
+  deletedBy    Int?
+  deletedAt    DateTime?
+
+  salesOrder   SaleOrder  @relation(fields: [salesOrderId], references: [id])
+  customer     Customer   @relation(fields: [customerId], references: [id])
+  items        ReturnOrderItem[]
+}
+
+model ReturnOrderItem {
+  id            Int       @id @default(autoincrement())
+  returnOrderId Int
+  productId     Int
+  batchId       Int
+  quantity      Int
+  returnReason  String
+  refundAmount  Float
+  restock       Boolean
+  createdAt     DateTime  @default(now())
+  editedAt      DateTime?
+
+  returnOrder   ReturnOrder  @relation(fields: [returnOrderId], references: [id])
+  product       Product      @relation(fields: [productId], references: [id])
+  batch         ProductBatch @relation(fields: [batchId], references: [id])
+}
+
+model StockMovement {
+  id             Int       @id @default(autoincrement())
+  productId      Int
+  batchId        Int
+  supplierId     Int
+  quantityChange Int
+  movementType   String
+  referenceId    Int
+  createdBy      Int?
+  createdAt      DateTime  @default(now())
+  editedBy       Int?
+  editedAt       DateTime?
+  deletedBy      Int?
+  deletedAt      DateTime?
+
+  product        Product     @relation(fields: [productId], references: [id])
+  batch          ProductBatch @relation(fields: [batchId], references: [id])
+  supplier       Supplier    @relation(fields: [supplierId], references: [id])
+}
+
+model Customer {
+  id          Int       @id @default(autoincrement())
   name        String
-  contactInfo String?
-  createdAt   DateTime @default(now())
-}
+  email       String
+  phone       String
+  address     String
+  createdBy   Int?
+  createdAt   DateTime  @default(now())
+  editedBy    Int?
+  editedAt    DateTime?
+  deletedBy   Int?
+  deletedAt   DateTime?
 
-model Transaction {
-  id         String   @id @default(uuid())
-  productId  String
-  product    Product  @relation(fields: [productId], references: [id])
-  type       TransactionType
-  quantity   Int
-  createdAt  DateTime @default(now())
-}
-
-enum Role {
-  ADMIN
-  MANAGER
-  STAFF
-}
-
-enum TransactionType {
-  PURCHASE
-  SALE
+  saleOrders  SaleOrder[]
+  returnOrders ReturnOrder[]
 }
